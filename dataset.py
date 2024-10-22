@@ -9,20 +9,22 @@ from typing import Tuple
 
 
 class ImageDataset(Dataset):
-    def __init__(self, image_path: str, img_wh: Tuple[int, int], split: str):
+    def __init__(self, image_path: str, split: str):
+        """
+        split: 'train' or 'val'
+        """
         image = imageio.imread(image_path)[..., :3]/255.
-        image = cv2.resize(image, img_wh)
-        # image = np.load('images/data_2d_text.npz')['test_data'][6]/255.
-        # 生成uv网格
-        self.uv = create_meshgrid(*image.shape[:2], True)[0]
-        self.rgb = torch.FloatTensor(image)
+        c = [image.shape[0]//2, image.shape[1]//2]
+        self.r = 256
+        image = image[c[0]-self.r:c[0]+self.r,
+                      c[1]-self.r:c[1]+self.r] # (512, 512, 3)
+
+        self.uv = create_meshgrid(2*self.r, 2*self.r, True)[0] # (512, 512, 2)
+        self.rgb = torch.FloatTensor(image) # (512, 512, 3)
 
         if split == 'train':
-            self.uv = self.uv[::2, ::2]
-            self.rgb = self.rgb[::2, ::2]
-        elif split == 'val':
-            self.uv = self.uv[1::2, 1::2]
-            self.rgb = self.rgb[1::2, 1::2]
+            self.uv = self.uv[::2, ::2] # (256, 256, 2)
+            self.rgb = self.rgb[::2, ::2] # (256, 256, 3)
 
         self.uv = rearrange(self.uv, 'h w c -> (h w) c')
         self.rgb = rearrange(self.rgb, 'h w c -> (h w) c')

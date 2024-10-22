@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from dataset import ImageDataset
 
 # models
-from model import MLP
+from models import MLP
 
 # metrics
 from metrics import psnr
@@ -23,7 +23,7 @@ from opt import get_opts
 # optimizers
 
 
-seed_everything(1234, workers=True)  # 随机数生成器
+seed_everything(1234, workers=True)  # 随机数生成器,暂时没用
 
 
 class CordMLP(LightningModule):
@@ -31,45 +31,40 @@ class CordMLP(LightningModule):
         super().__init__()
         self.save_hyperparameters(hparams)
         if hparams.arch == 'identity':
-            self.net = MLP()
+            self.net = MLP(n_in=2)
         self.loss = nn.MSELoss()  # 使用均方差作为损失函数
         self.training_step_outputs = []
 
-    # def prepare_data(self, x):
-    #     return self.net(x)
     def forward(self, x):
         return self.net(x)
 
     def setup(self, stage=None):
-        self.train_dataset = ImageDataset(
-            self.hparams.image_path,
-            self.hparams.img_wh,
-            split='train')
-        self.val_dateset = ImageDataset(self.hparams.image_path,
-                                        self.hparams.img_wh,
+        self.train_dataset = ImageDataset(self.hparams.image_path,
+                                          split='train')
+        self.val_dataset = ImageDataset(self.hparams.image_path,
                                         split='val')
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset,
                           shuffle=True,
-                          num_workers=8,
+                          num_workers=4,
                           batch_size=self.hparams.batch_size,
                           pin_memory=True)
 
     def val_dataloader(self):
-
-        return DataLoader(self.val_dateset,
+        return DataLoader(self.val_dataset,
                           shuffle=False,
-                          num_workers=8,
+                          num_workers=4,
                           batch_size=self.hparams.batch_size,
                           pin_memory=True)
 
     def configure_optimizers(self):
-        self.opt = Adam(self.net.parameters(), lr=self.hparams.lr)
-        return [self.opt]
+        self.optimizer = Adam(self.net.parameters(), lr=self.hparams.lr)
+
+        return self.optimizer
 
     def training_step(self, batch, batch_idx):
-        RGB_predict = self.net(batch['uv'])
+        RGB_predict = self(batch['uv'])
 
         loss = self.loss(RGB_predict, batch['rgb'])
         psnr_ = psnr(RGB_predict, batch['rgb'])

@@ -21,13 +21,11 @@ def get_opts():
                         help='whether to train activation hyperparameter')
 
     parser.add_argument('--sc', type=float, default=10.,
-                        help='fourier feature scale factor (std of the gaussian)')
-    parser.add_argument('--omega_0', type=float, default=30.,
-                        help='omega in siren')
+                        help='gaussian embedding scale factor')
 
-    parser.add_argument('--batch_size', type=int, default=512,    # batch size
+    parser.add_argument('--batch_size', type=int, default=256*256,
                         help='number of batch size')
-    parser.add_argument('--lr', type=float, default=1e-4,  # learn rate
+    parser.add_argument('--lr', type=float, default=1e-4,
                         help='learning rate')
     parser.add_argument('--num_epochs', type=int, default=1000,
                         help='number of epochs')
