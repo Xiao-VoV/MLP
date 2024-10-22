@@ -25,11 +25,11 @@ def get_opts():
     parser.add_argument('--omega_0', type=float, default=30.,
                         help='omega in siren')
 
-    parser.add_argument('--batch_size', type=int, default=256,
+    parser.add_argument('--batch_size', type=int, default=256,    # batch size
                         help='number of batch size')
-    parser.add_argument('--lr', type=float, default=1e-4,
+    parser.add_argument('--lr', type=float, default=1e-4,  # learn rate
                         help='learning rate')
-    parser.add_argument('--num_epochs', type=int, default=1000,
+    parser.add_argument('--num_epochs', type=int, default=200,
                         help='number of epochs')
 
     parser.add_argument('--exp_name', type=str, default='exp',
