@@ -24,4 +24,14 @@ class MLP(nn.Module):
         """
         x: (B, 2) # pixel uv (normalized)
         """
-        return self.net(x) # (B, 3) rgb
+        return self.net(x)  # (B, 3) rgb
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, P):
+        super().__init__()
+        self.P = P
+
+    def forward(self, x):
+        # 计算 x 与 self.P 的转置的矩阵乘积。
+        return torch.cat([torch.sin(x @ self.P.T)])

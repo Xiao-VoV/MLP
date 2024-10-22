@@ -71,7 +71,7 @@ class CordMLP(LightningModule):
 
         self.log('train/loss', loss, prog_bar=True)  # 损失率
         self.log('train/psnr', psnr_, prog_bar=True)  # psnr可以设置进度条
-        self.training_step_outputs.append(loss)
+        # self.training_step_outputs.append(loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -83,16 +83,42 @@ class CordMLP(LightningModule):
         log = {
             'val_loss': loss,
             'val_psnr': psnr_,
-            'rgb_predicted': rgb_predicted,
+            'rgb_pred': rgb_predicted,
         }
-        # self.training_step_outputs.append(log)
+        self.training_step_outputs.append(log)
         return log
+
+    def create_function(self):
+        has_run = [False]  # 使用列表来创建可变的状态
+
+        def my_function():
+            if has_run[0]:
+                return
+            has_run[0] = True
+            print(self.training_step_outputs)
+        return my_function
 
     # def validation_epoch_end(self, outputs):
     def on_validation_epoch_end(self):
-        epoch_average = torch.stack(self.training_step_outputs).mean()
-        self.log('val/loss', epoch_average, prog_bar=True)
+        my_function = self.create_function()
+        my_function()
+        mean_loss = torch.stack([x['val_loss']
+                                for x in self.training_step_outputs]).mean()
+        mean_psnr = torch.stack([x['val_psnr']
+                                for x in self.training_step_outputs]).mean()
+        rgb_pred = torch.cat([x['rgb_pred']
+                             # (512*512, 3)
+                              for x in self.training_step_outputs])
+        rgb_pred = rearrange(rgb_pred, '(h w) c -> c h w',
+                             h=2*self.train_dataset.r,
+                             w=2*self.train_dataset.r)
+
+        self.logger.experiment.add_image('val/image_pred',
+                                         rgb_pred,
+                                         self.global_step)
         self.training_step_outputs.clear()
+        self.log('val/loss', mean_loss, prog_bar=True)
+        self.log('val/psnr', mean_psnr, prog_bar=True)
         """
         mean_loss = torch.stack([x['val_loss']
                                  for x in self.training_step_outputs]).mean()
@@ -103,7 +129,7 @@ class CordMLP(LightningModule):
                                    ])
         rgb_predicted = rearrange(rgb_predicted, '(h w) c -> h w c',
                                   h=2*self.train_dataset.r,
-                                  w=2*self.train_dataset.c)
+                                  w=2*self.train_dataset.r)
         self.logger.experiment.add_image('val/rgb_predicted',
                                          rgb_predicted,
                                          self.current_epoch)
