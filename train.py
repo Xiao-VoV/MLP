@@ -57,6 +57,7 @@ class CordMLP(LightningModule):
                           pin_memory=True)
 
     def val_dataloader(self):
+
         return DataLoader(self.val_dateset,
                           shuffle=False,
                           num_workers=8,
@@ -69,10 +70,12 @@ class CordMLP(LightningModule):
 
     def training_step(self, batch, batch_idx):
         RGB_predict = self.net(batch['uv'])
+
         loss = self.loss(RGB_predict, batch['rgb'])
-        self.log('train/loss', loss)  # 损失率
         psnr_ = psnr(RGB_predict, batch['rgb'])
-        self.log('train/psnr', psnr_,)  # psnr可以设置进度条
+
+        self.log('train/loss', loss, prog_bar=True)  # 损失率
+        self.log('train/psnr', psnr_, prog_bar=True)  # psnr可以设置进度条
         self.training_step_outputs.append(loss)
         return loss
 
@@ -90,46 +93,29 @@ class CordMLP(LightningModule):
         # self.training_step_outputs.append(log)
         return log
 
+    # def validation_epoch_end(self, outputs):
     def on_validation_epoch_end(self):
         epoch_average = torch.stack(self.training_step_outputs).mean()
-        self.log("training_epoch_average", epoch_average)
-
-        self.training_step_outputs.clear()  # free memory
-
-# mean_loss = torch.stack(self.training_step_outputs).mean()
-
-# self.log("training_epoch_average", mean_loss, prog_bar=True)
-# mean_loss = torch.stack([x['val_loss']
-#                         for x in self.training_step_outputs]).mean()
-# mean_psnr = torch.stack([x['val_psnr']
-#                         for x in self.training_step_outputs]).mean()
-
-# rgb_predicted = torch.cat([x['rgb_predicted']
-#                            # 512*512*3
-#                            for x in self.training_step_outputs])
-
-# rgb_predicted = rearrange(rgb_predicted, '(h w) c -> h w c', h=512)
-
-# self.logger.experiment.add_image(
-#     'val/iamge_predicted', rgb_predicted, self.global_step)
-
-# self.log('val/loss', mean_loss, prog_bar=True)
-# self.log('val/psnr', mean_psnr, prog_bar=True)
-
-# self.training_step_outputs.clear()  # free memory
-# mean_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-# mean_psnr = torch.stack([x['tval_loss'] for x in outputs]).mean()
-
-# rgb_predicted = torch.cat([x['rgb_predicted']
-#                            for x in outputs])  # 512*512*3
-
-# rgb_predicted = rearrange(rgb_predicted, '(h w) c -> h w c', h=512)
-
-# self.logger.experiment.add_image(
-#     'val/iamge_predicted', rgb_predicted, self.global_step)
-
-# self.log('val/loss', mean_loss, prog_bar=True)
-# self.log('val/psnr', mean_psnr, prog_bar=True)
+        self.log('val/loss', epoch_average, prog_bar=True)
+        self.training_step_outputs.clear()
+        """
+        mean_loss = torch.stack([x['val_loss']
+                                 for x in self.training_step_outputs]).mean()
+        mean_psnr = torch.stack([x['val_psnr']
+                                 for x in self.training_step_outputs]).mean()
+        rgb_predicted = torch.cat([x['rgb_predicted']
+                                   for x in self.training_step_outputs
+                                   ])
+        rgb_predicted = rearrange(rgb_predicted, '(h w) c -> h w c',
+                                  h=2*self.train_dataset.r,
+                                  w=2*self.train_dataset.c)
+        self.logger.experiment.add_image('val/rgb_predicted',
+                                         rgb_predicted,
+                                         self.current_epoch)
+        self.training_step_outputs.clear()
+        self.log('val/loss', mean_loss)
+        self.log('val/psnr', mean_psnr)
+        """
 
 
 if __name__ == '__main__':
