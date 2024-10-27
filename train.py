@@ -87,6 +87,7 @@ class CordMLP(LightningModule):
         }
         self.training_step_outputs.append(log)
         return log
+    # unuse
 
     def create_function(self):
         has_run = [False]  # 使用列表来创建可变的状态
@@ -98,10 +99,7 @@ class CordMLP(LightningModule):
             print(self.training_step_outputs)
         return my_function
 
-    # def validation_epoch_end(self, outputs):
     def on_validation_epoch_end(self):
-        my_function = self.create_function()
-        my_function()
         mean_loss = torch.stack([x['val_loss']
                                 for x in self.training_step_outputs]).mean()
         mean_psnr = torch.stack([x['val_psnr']
@@ -119,30 +117,20 @@ class CordMLP(LightningModule):
         self.training_step_outputs.clear()
         self.log('val/loss', mean_loss, prog_bar=True)
         self.log('val/psnr', mean_psnr, prog_bar=True)
-        """
-        mean_loss = torch.stack([x['val_loss']
-                                 for x in self.training_step_outputs]).mean()
-        mean_psnr = torch.stack([x['val_psnr']
-                                 for x in self.training_step_outputs]).mean()
-        rgb_predicted = torch.cat([x['rgb_predicted']
-                                   for x in self.training_step_outputs
-                                   ])
-        rgb_predicted = rearrange(rgb_predicted, '(h w) c -> h w c',
-                                  h=2*self.train_dataset.r,
-                                  w=2*self.train_dataset.r)
-        self.logger.experiment.add_image('val/rgb_predicted',
-                                         rgb_predicted,
-                                         self.current_epoch)
-        self.training_step_outputs.clear()
-        self.log('val/loss', mean_loss)
-        self.log('val/psnr', mean_psnr)
-        """
+
+    def print_paremeters(self):
+        for name, param in self.net.named_parameters():
+            print(name, ':', param.size())
+        num_params = len(list(self.net.parameters()))
+        print(f'The model has {num_params} parameters.')
+        print(sum(p.numel() for p in self.net.parameters() if p.requires_grad))
 
 
 if __name__ == '__main__':
     hparams = get_opts()
     system = CordMLP(hparams)
-
+    print("****************************************")
+    system.print_paremeters()
     pbar = TQDMProgressBar(refresh_rate=1)
     callbacks = [pbar]
 
