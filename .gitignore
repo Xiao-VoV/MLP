@@ -5,5 +5,3 @@ models/
 logs/
 __pycache__/
 *.pyc
-*.ipynb
-*.pkl
